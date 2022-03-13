@@ -9,10 +9,12 @@ model = BartForConditionalGeneration.from_pretrained('facebook/bart-base')
 def convert_to_features(example_batch):
     input_encodings = tokenizer.batch_encode_plus(example_batch['article'], padding='max_length', max_length=1024, truncation=True)
     target_encodings = tokenizer.batch_encode_plus(example_batch['abstract'], padding='max_length', max_length=1024, truncation=True)
-    print(example_batch)
     labels = target_encodings['input_ids']
-    labels[labels[:, :] == model.config.pad_token_id] = -100
     
+    
+    labels = [
+                [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels
+    ]
     encodings = {
         'input_ids': input_encodings['input_ids'],
         'attention_mask': input_encodings['attention_mask'],
@@ -20,8 +22,9 @@ def convert_to_features(example_batch):
     }
 
     return encodings
-print(model.config.pad_token_id)
-#dataset = dataset.map(convert_to_features,batched=True)
+dataset = dataset.map(convert_to_features,batched=True)
+
+print(dataset)
 
 # training_args = TrainingArguments(
 #     output_dir='./models/bart-summarizer',          
