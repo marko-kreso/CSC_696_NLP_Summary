@@ -26,20 +26,22 @@ dataset = dataset.map(convert_to_features,batched=True)
 
 print(dataset)
 
-# training_args = TrainingArguments(
-#     output_dir='./models/bart-summarizer',          
-#     num_train_epochs=1,           
-#     per_device_train_batch_size=1, 
-#     per_device_eval_batch_size=1,   
-#     warmup_steps=500,               
-#     weight_decay=0.01,              
-#     logging_dir='./logs',          
-# )
+training_args = TrainingArguments(
+    output_dir='./models/bart-summarizer',          
+    num_train_epochs=1,           
+    per_device_train_batch_size=1, 
+    per_device_eval_batch_size=1,   
+    warmup_steps=500,               
+    weight_decay=0.01,              
+    logging_dir='./logs',          
+)
 
-# trainer = Trainer(
-#     model=model,                       
-#     args=training_args,                  
-#     train_dataset=dataset['train'],        
-#     eval_dataset=dataset['validation']   
-# )
+trainer = Trainer(
+    model=model,                       
+    args=training_args,                  
+    train_dataset=dataset['train'],        
+    eval_dataset=dataset['validation']   
+)
+trainer.train()
+trainer.save_model()
 # print(BartForConditionalGeneration)
