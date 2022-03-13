@@ -32,6 +32,7 @@ training_args = TrainingArguments(
     per_device_train_batch_size=1, 
     per_device_eval_batch_size=1,   
     warmup_steps=500,               
+    save_steps=10000,
     weight_decay=0.01,              
     logging_dir='./logs',          
 )
@@ -42,6 +43,6 @@ trainer = Trainer(
     train_dataset=dataset['train'],        
     eval_dataset=dataset['validation']   
 )
-trainer.train()
+trainer.train(resume_from_checkpoint=True)
 trainer.save_model()
 # print(BartForConditionalGeneration)
