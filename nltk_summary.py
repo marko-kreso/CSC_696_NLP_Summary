@@ -17,7 +17,7 @@ nltk.download('stopwords')
 # Perhaps put this before you call the function so that its not called everytime
 stopwords = set(stopwords.words('english'))
 ps = PorterStemmer()
-def query_predict(text, abs_sum):
+def query_predict(pred_sum, abs_sum):
     def normalize_collection(input):
         # Tokenize sentence (split into words)
         sents = sent_tokenize(input)
@@ -54,7 +54,7 @@ def query_predict(text, abs_sum):
         return sent
 
     query = normalize_query(abs_sum)
-    doc_col = normalize_collection(text)
+    doc_col = normalize_collection(pred_sum)
 
     if len(doc_col) == 0:
         print('zero doc length')
