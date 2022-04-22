@@ -1,5 +1,3 @@
-from typing import final
-from torch import norm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from datasets import load_dataset
 from datasets import load_metric
@@ -11,6 +9,7 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 import re
 import nltk
+import tqdm
 
 import numpy as np
 
@@ -57,35 +56,47 @@ dataset = load_dataset("ccdv/pubmed-summarization")
 
 rouge = load_metric('rouge')
 
-model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
-tokenizer = AutoTokenizer.from_pretrained("t5-base")
+model = AutoModelForSeq2SeqLM.from_pretrained("./BART-Pubmed_summarizer/")
+tokenizer = AutoTokenizer.from_pretrained("./BART-Pubmed_summarizer/")
 
-summary = dataset['train'][0]['article']
-abstract = dataset['train'][0]['abstract']
-inputs = tokenizer("summarize: " + summary,return_tensors="pt", max_length=512, truncation=True)
-outputs = model.generate(inputs["input_ids"], max_length=150, min_length=40,length_penalty=2.0, num_beams=4, early_stopping=True)
-pred_sum = tokenizer.decode(outputs[0], skip_special_tokens=True)
+rouge_scores = [0, 0]
 
-query = normalize_query(pred_sum)
-print(query)
+for data in tqdm(dataset['train']):
+    summary = data['article']
+    abstract = data['abstract']
+    inputs = tokenizer("summarize: " + summary,return_tensors="pt", max_length=512, truncation=True)
+    outputs = model.generate(inputs["input_ids"], max_length=150, min_length=40,length_penalty=2.0, num_beams=4, early_stopping=True)
+    pred_sum = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-doc_col = normalize_collection(summary)
+    query = normalize_query(pred_sum)
 
-bm25 = BM25Okapi(doc_col)
-scores = bm25.get_scores(query)
+    doc_col = normalize_collection(summary)
 
-top_10_idx = np.argsort(scores)[-10:]
+    if len(doc_col) == 0:
+        print('zero doc col length')
+        continue
+    if len(query) == 0:
+        print('zero query len')
+        continue
 
-top_10_idx = sorted(top_10_idx)
+    bm25 = BM25Okapi(doc_col)
+    scores = bm25.get_scores(query)
 
-summary = sent_tokenize(summary)
-final_summary = ""
-for idx in top_10_idx:
-    final_summary += summary[idx]
+    top_10_idx = np.argsort(scores)[-10:]
 
-print(final_summary)
+    top_10_idx = sorted(top_10_idx)
 
-results = rouge.compute(predictions=[final_summary],references=[abstract])
+    summary = sent_tokenize(summary)
+    final_summary = ""
+    for idx in top_10_idx:
+        final_summary += summary[idx]
 
-print(results["rouge1"])
-print(results["rouge2"])
+    results = rouge.compute(predictions=[final_summary],references=[abstract])
+
+    rouge_scores[0] += results['rouge1'][1][2]
+    rouge_scores[1] += results['rouge2'][1][2]
+
+print(rouge_scores[0] / float(len(dataset['train'])))
+print(rouge_scores[1] / float(len(dataset['train'])))
+print(rouge_scores[0])
+print(rouge_scores[1])
