@@ -13,7 +13,7 @@ import re
 import nltk
 
 import numpy as np
-
+nltk.download('stopwords')
 stopwords = set(stopwords.words('english'))
 ps = PorterStemmer()
 
@@ -57,12 +57,12 @@ dataset = load_dataset("ccdv/pubmed-summarization")
 
 rouge = load_metric('rouge')
 
-model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
-tokenizer = AutoTokenizer.from_pretrained("t5-base")
+model = AutoModelForSeq2SeqLM.from_pretrained("fa:")
+tokenizer = AutoTokenizer.from_pretrained("facebook/bart-base")
 
 summary = dataset['train'][0]['article']
 abstract = dataset['train'][0]['abstract']
-inputs = tokenizer("summarize: " + summary,return_tensors="pt", max_length=512, truncation=True)
+inputs = tokenizer(summary,return_tensors="pt", max_length=512, truncation=True)
 outputs = model.generate(inputs["input_ids"], max_length=150, min_length=40,length_penalty=2.0, num_beams=4, early_stopping=True)
 pred_sum = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
