@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 python run_summarization.py \
-	--model_name_or_path facebook/bart-base \
+	--model_name_or_path './BART-Pubmed_summarizer' \
 	--do_train \
 	--do_eval \
 	--dataset_name ccdv/pubmed-summarization \

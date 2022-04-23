@@ -18,6 +18,8 @@ nltk.download('stopwords')
 stopwords = set(stopwords.words('english'))
 ps = PorterStemmer()
 def query_predict(pred_sum, abs_sum):
+    print(pred_sum)
+    print(abs_sum)
     def normalize_collection(input):
         # Tokenize sentence (split into words)
         sents = sent_tokenize(input)
