@@ -1,7 +1,8 @@
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from datasets import load_dataset
 from datasets import load_metric
-
+import torch
+from torch import *
 import pandas as pd
 from rank_bm25 import *
 from nltk.tokenize import word_tokenize, sent_tokenize
@@ -17,7 +18,7 @@ nltk.download('stopwords')
 # Perhaps put this before you call the function so that its not called everytime
 stopwords = set(stopwords.words('english'))
 ps = PorterStemmer()
-def query_predict(pred_sum, abs_sum):
+def query_predict(abs_sum, i):
     def normalize_collection(input):
         # Tokenize sentence (split into words)
         sents = sent_tokenize(input)
@@ -53,6 +54,11 @@ def query_predict(pred_sum, abs_sum):
 
         return sent
 
+    pred_sum = dataset['validation'][i]['article']
+
+    if i == 0:
+        print(dataset['validation'][i]['abstract'])
+
     query = normalize_query(abs_sum)
     doc_col = normalize_collection(pred_sum)
 
@@ -67,7 +73,7 @@ def query_predict(pred_sum, abs_sum):
     bm25 = BM25Okapi(doc_col)
     scores = bm25.get_scores(query)
 
-    top_10_idx = np.argsort(scores)[-10:]
+    top_10_idx = np.argsort(scores)[-7:]
 
     top_10_idx = sorted(top_10_idx)
 
@@ -79,40 +85,41 @@ def query_predict(pred_sum, abs_sum):
 
     return final_summary
 
-# rouge_scores = [0,0]
+rouge_scores = [0,0]
 
-# dataset = load_dataset("ccdv/pubmed-summarization")
+dataset = load_dataset("ccdv/pubmed-summarization")
 
-# rouge = load_metric('rouge')
+rouge = load_metric('rouge')
 
-# model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
-# tokenizer = AutoTokenizer.from_pretrained("t5-base")
+model = AutoModelForSeq2SeqLM.from_pretrained("./BART-Pubmed_summarizer/")
+tokenizer = AutoTokenizer.from_pretrained("./BART-Pubmed_summarizer/")
 
-# summary = dataset['train'][0]['article']
-# abstract = dataset['train'][0]['abstract']
-# inputs = tokenizer(summary,return_tensors="pt", max_length=512, truncation=True)
-# outputs = model.generate(inputs["input_ids"], max_length=150, min_length=40,length_penalty=2.0, num_beams=4, early_stopping=True)
-# pred_sum = tokenizer.decode(outputs[0], skip_special_tokens=True)
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+print(torch.cuda.is_available())
 
-# for data in tqdm(dataset['train']):
-#     summary = data['article']
-#     abstract = data['abstract']
-#     inputs = tokenizer("summarize: " + summary,return_tensors="pt", max_length=512, truncation=True)
-#     outputs = model.generate(inputs["input_ids"], max_length=150, min_length=40,length_penalty=2.0, num_beams=4, early_stopping=True)
-#     pred_sum = tokenizer.decode(outputs[0], skip_special_tokens=True)
+model = model.to(device)
 
-#     final_summary = query_predict(summary, pred_sum)
+i = 0
 
-#     results = rouge.compute(predictions=[final_summary],references=[abstract])
+for data in tqdm(dataset['validation']):
+    summary = data['article']
+    abstract = data['abstract']
+    inputs = tokenizer("summarize: " + summary,return_tensors="pt", max_length=512, truncation=True).to(device)
+    outputs = model.generate(inputs["input_ids"], max_length=150, min_length=40,length_penalty=2.0, num_beams=4, early_stopping=True).to(device)
+    pred_sum = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    final_summary = query_predict(summary, pred_sum)
+
+    results = rouge.compute(predictions=[final_summary],references=[abstract])
     
-#     print(results)
+    rouge_scores[0] += results['rouge1'][1][2]
+    rouge_scores[1] += results['rouge2'][1][2]
 
-#     rouge_scores[0] += results['rouge1'][1][2]
-#     rouge_scores[1] += results['rouge2'][1][2]
+    i += 1
+    if i >= 1000:
+        break
 
-#     break
-
-# print(rouge_scores[0] / float(len(dataset['train'])))
-# print(rouge_scores[1] / float(len(dataset['train'])))
-# print(rouge_scores[0])
-# print(rouge_scores[1])
+# print(rouge_scores[0] / float(len(dataset['validation'])))
+# print(rouge_scores[1] / float(len(dataset['validation'])))
+print(rouge_scores[0] / 1000.0)
+print(rouge_scores[1] / 1000.0)
