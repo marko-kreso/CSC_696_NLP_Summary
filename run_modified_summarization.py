@@ -597,7 +597,7 @@ def main():
             for i in range(len(decoded_labels)):
                 if i == 0:
                     print('Abstract: ',decoded_labels[i])
-                decoded_preds[i] = query_predict(decoded_preds[i],i)
+                decoded_preds[i] = query_predict(decoded_preds[i],i, max_length)
             
             # Some simple post-processing
             decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
