@@ -595,7 +595,9 @@ def main():
             
             # ADD BM25 stuff here
             for i in range(len(decoded_labels)):
-                decoded_preds[i] = query_predict(decoded_preds[i], decoded_labels[i])
+                if i == 0:
+                    print('Abstract: ',decoded_labels[i])
+                decoded_preds[i] = query_predict(decoded_preds[i],i)
             
             # Some simple post-processing
             decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
