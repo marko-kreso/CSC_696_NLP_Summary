@@ -18,6 +18,9 @@ nltk.download('stopwords')
 # Perhaps put this before you call the function so that its not called everytime
 stopwords = set(stopwords.words('english'))
 ps = PorterStemmer()
+dataset = load_dataset("ccdv/pubmeds-summarization")
+rouge = load_metric('rouge')
+
 def query_predict(abs_sum, i):
     def normalize_collection(input):
         # Tokenize sentence (split into words)
@@ -85,39 +88,35 @@ def query_predict(abs_sum, i):
 
     return final_summary
 
-rouge_scores = [0,0]
+# rouge_scores = [0,0]
 
-dataset = load_dataset("ccdv/pubmed-summarization")
+# model = AutoModelForSeq2SeqLM.from_pretrained("./BART-Pubmed_summarizer/")
+# tokenizer = AutoTokenizer.from_pretrained("./BART-Pubmed_summarizer/")
 
-rouge = load_metric('rouge')
+# device = "cuda:0" if torch.cuda.is_available() else "cpu"
+# print(torch.cuda.is_available())
 
-model = AutoModelForSeq2SeqLM.from_pretrained("./BART-Pubmed_summarizer/")
-tokenizer = AutoTokenizer.from_pretrained("./BART-Pubmed_summarizer/")
+# model = model.to(device)
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-print(torch.cuda.is_available())
+# i = 0
 
-model = model.to(device)
+# for data in tqdm(dataset['validation']):
+#     summary = data['article']
+#     abstract = data['abstract']
+#     inputs = tokenizer("summarize: " + summary,return_tensors="pt", max_length=512, truncation=True).to(device)
+#     outputs = model.generate(inputs["input_ids"], max_length=150, min_length=40,length_penalty=2.0, num_beams=4, early_stopping=True).to(device)
+#     pred_sum = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-i = 0
+#     final_summary = query_predict(pred_sum, i)
 
-for data in tqdm(dataset['validation']):
-    summary = data['article']
-    abstract = data['abstract']
-    inputs = tokenizer("summarize: " + summary,return_tensors="pt", max_length=512, truncation=True).to(device)
-    outputs = model.generate(inputs["input_ids"], max_length=150, min_length=40,length_penalty=2.0, num_beams=4, early_stopping=True).to(device)
-    pred_sum = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    final_summary = query_predict(summary, pred_sum)
-
-    results = rouge.compute(predictions=[final_summary],references=[abstract])
+#     results = rouge.compute(predictions=[final_summary],references=[abstract])
     
-    rouge_scores[0] += results['rouge1'][1][2]
-    rouge_scores[1] += results['rouge2'][1][2]
+#     rouge_scores[0] += results['rouge1'][1][2]
+#     rouge_scores[1] += results['rouge2'][1][2]
 
-    i += 1
-    if i >= 1000:
-        break
+#     i += 1
+#     if i >= 1000:
+#         break
 
 # print(rouge_scores[0] / float(len(dataset['train'])))
 # print(rouge_scores[1] / float(len(dataset['train'])))
