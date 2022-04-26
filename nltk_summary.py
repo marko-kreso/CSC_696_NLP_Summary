@@ -119,7 +119,7 @@ for data in tqdm(dataset['validation']):
     if i >= 1000:
         break
 
-# print(rouge_scores[0] / float(len(dataset['validation'])))
-# print(rouge_scores[1] / float(len(dataset['validation'])))
-print(rouge_scores[0] / 1000.0)
-print(rouge_scores[1] / 1000.0)
+# print(rouge_scores[0] / float(len(dataset['train'])))
+# print(rouge_scores[1] / float(len(dataset['train'])))
+# print(rouge_scores[0])
+# print(rouge_scores[1])
