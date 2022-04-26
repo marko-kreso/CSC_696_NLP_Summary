@@ -1,4 +1,5 @@
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from pydoc_data.topics import topics
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, MaxLengthCriteria
 from datasets import load_dataset
 from datasets import load_metric
 import torch
@@ -18,10 +19,10 @@ nltk.download('stopwords')
 # Perhaps put this before you call the function so that its not called everytime
 stopwords = set(stopwords.words('english'))
 ps = PorterStemmer()
-dataset = load_dataset("ccdv/pubmeds-summarization")
+dataset = load_dataset("ccdv/pubmed-summarization")
 rouge = load_metric('rouge')
 
-def query_predict(abs_sum, i):
+def query_predict(abs_sum, i, max_len):
     def normalize_collection(input):
         # Tokenize sentence (split into words)
         sents = sent_tokenize(input)
@@ -76,17 +77,27 @@ def query_predict(abs_sum, i):
     bm25 = BM25Okapi(doc_col)
     scores = bm25.get_scores(query)
 
-    top_10_idx = np.argsort(scores)[-7:]
-
-    top_10_idx = sorted(top_10_idx)
-
+    top_idx = np.argsort(scores)
+    num_sents = 0
+    num_words = 0
     pred_sum = sent_tokenize(pred_sum)
 
+    idx = len(top_idx) - 1
+    while num_words < max_len and idx >= 0:
+        num_words += len(pred_sum[top_idx[idx]].split(' '))
+
+        if num_words < max_len:
+            num_sents += 1
+
+        idx -= 1
+
+    top_k_idx = top_idx[-num_sents:]
+
     final_summary = ""
-    for idx in top_10_idx:
+    for idx in top_k_idx:
         final_summary += pred_sum[idx]
 
-    return final_summary
+    return "Start: " + final_summary
 
 # rouge_scores = [0,0]
 
