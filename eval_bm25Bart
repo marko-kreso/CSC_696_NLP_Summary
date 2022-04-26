@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+
+python run_modified_summarization.py \
+	--model_name_or_path './BART-Pubmed_summarizer' \
+	--do_eval \
+	--dataset_name ccdv/pubmed-summarization \
+	--summary_column abstract \
+	--text_column article \
+	--per_device_eval_batch_size=15 \
+	--predict_with_generate \
+	--output_dir ./BARTBM25-Pubmed_eval
