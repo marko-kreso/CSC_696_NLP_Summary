@@ -12,7 +12,7 @@ from [source code](https://huggingface.co/docs/transformers/installation#install
 - Install nltk
  
 
-## Getting model fine-tuned pubmed used
+## Getting fine-tuned pubmed parameters/weights
 
 Github does not allow for large files to be uploaded for free thus the weights used are not directly added to the project. To get the weights for the models used in the report download the [project](https://drive.google.com/file/d/1MKY6KJ6WE2mxsrd24Cr1fUk6CAYtZqbG/view?usp=sharing) from google drive, in BART-Pubmed\_summarizer and T5-Pubmed\_Summarizer the models will be stored as torch.bin files. These two files should be copied to the latest version of this project..
 
