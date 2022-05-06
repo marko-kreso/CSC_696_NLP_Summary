@@ -14,7 +14,7 @@ from [source code](https://huggingface.co/docs/transformers/installation#install
 
 ## Getting model fine-tuned pubmed used
 
-Github does not allow for large files to be uploaded to get the actual pytorch models that stores the weights. To get the weights for the models used in the report download the [project](://drive.google.com/file/d/1MKY6KJ6WE2mxsrd24Cr1fUk6CAYtZqbG/view?usp=sharing) from google drive, in BART-Pubmed\_summarizer and T5-Pubmed\_Summarizer the models will be stored as torch.bin files. These files correspond to each model according to directory name
+Github does not allow for large files to be uploaded to get the actual pytorch models that stores the weights. To get the weights for the models used in the report download the [project](https://drive.google.com/file/d/1MKY6KJ6WE2mxsrd24Cr1fUk6CAYtZqbG/view?usp=sharing) from google drive, in BART-Pubmed\_summarizer and T5-Pubmed\_Summarizer the models will be stored as torch.bin files. These files correspond to each model according to directory name
 
 
 ## Running training/evaluation
