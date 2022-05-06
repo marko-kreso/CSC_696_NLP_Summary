@@ -1,23 +1,20 @@
 # CSC_696_NLP_Summary
 ## Requirements
 
-Install latest version of huggingface transformers from **source code.**
+- Install latest version of huggingface transformers from **source code.**
 
 **Note** that in order for the scripts to work huggingface transformers must be 
 installed from source and not from any other method. Instructions on installing 
 from [source code](https://huggingface.co/docs/transformers/installation#installing-from-source). 
 
-    Include dependencies for huggingface transformers
+- Include dependencies for huggingface transformers
 
-    Install nltk
+- Install nltk
  
 
 ## Getting model fine-tuned pubmed used
 
-Github does not allow for large files to be uploaded to get the actual 
-pytorch models that stores the weights. Use this link to download the project, 
-in BART-Pubmed\_summarizer and T5-Pubmed\_Summarizer the models will be stored 
-as torch.bin files. These files correspond to each model according to directory name
+Github does not allow for large files to be uploaded to get the actual pytorch models that stores the weights. Use this link to download the project, in BART-Pubmed\_summarizer and T5-Pubmed\_Summarizer the models will be stored as torch.bin files. These files correspond to each model according to directory name
 
 
 ## Running training/evaluation
