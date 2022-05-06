@@ -5,7 +5,7 @@
 
 **Note** that in order for the scripts to work huggingface transformers must be 
 installed from source and not from any other method. Instructions on installing 
-from [source code](https://huggingface.co/docs/transformers/installation#installing-from-source). 
+from [source code](https://huggingface.co/docs/transformers/installation#install-from-source). 
 
 - Include dependencies for huggingface transformers
 
