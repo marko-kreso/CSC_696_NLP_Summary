@@ -1,1 +1,3 @@
 *pytorch*.bin
+.venv
+__pycache__
