@@ -12,6 +12,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk import word_tokenize, sent_tokenize
 from nltk.stem import WordNetLemmatizer
 import nltk
+from sklearn.preprocessing import normalize
 import pickle
 
 nltk.download('wordnet')
@@ -107,7 +108,7 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
         personalization = np.fill((n),1/n)
 
     assert(personalization.shape[0] == n)
-    
+    print(personalization)
     
     while(i < 100):
         node_rank = dict()
@@ -125,8 +126,8 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
         for node,rank in node_rank.items():
             converged += abs(rank - node.get_score())
             node.set_score(rank)
-        
-        if converged <= .000001:
+        print(converged)
+        if converged <= .0001:
             return graph
 
         i += 1
@@ -227,8 +228,7 @@ def compute_query_tf_idf(query, doc_freq, N):
 
 
 def soft_max(x):
-    den = sum([exp(z) for z in x])
-    return np.array([exp(z)/den for z in x])
+    return np.exp(x)/sum(np.exp(x))
 
 
     
@@ -243,12 +243,18 @@ def query_predict(abs_sum, i, max_len):
     tfidf_mat = vectorizer.fit_transform(pred_sum_sentences).toarray()
     query_tfidf = vectorizer.transform(abs_sum).toarray()
 
-    personalization_vec = tfidf_mat @ query_tfidf.T
-    personalization_vec = soft_max(personalization_vec)
+
+    #Create personalization vector that will influence text rank algorithm. 
+    #Biases teleportion based on the query
+    personalization_vec = (tfidf_mat @ query_tfidf.T).flatten()
+   # personalization_vec = soft_max(personalization_vec)
+
+    personalization_vec =  personalization_vec / sum(personalization_vec)
+    assert(sum(personalization_vec) - 1 <= .001)
 
     xv, yv = np.meshgrid(np.arange(len(pred_sum_sentences)),np.arange(len(pred_sum_sentences)), indexing='ij')
     similarity_table = np.zeros(xv.shape)
-
+    #Calulate cosine similarities between every sentence
     for i in range(len(xv)):
         for j in range(len(yv)):
             if xv[i,j] != yv[i,j]:
@@ -256,18 +262,15 @@ def query_predict(abs_sum, i, max_len):
 
 
     graph = Graph(similarity_table)
-    graph = generate_score(graph, personalization_vec)
+    graph = generate_score(graph, personalization_vec, .85)
 
-    # pickle.dump(graph, open('graph.m', 'wb'))
-    
-    # graph = pickle.load(open('graph.m', 'rb'))
-    # print(sum(graph.get_scores()))
+    #Get top 5 ranked sentences and arrange in order they appear in article.
     ranked = sorted(np.argsort(graph.get_scores())[::-1][:5])
-    
+
     final_summary = ''
     for rank in ranked:
         final_summary += pred_sum_sentences[rank]
-
+    
     return final_summary
     
 
@@ -277,7 +280,11 @@ def query_predict(abs_sum, i, max_len):
 
 dataset = load_dataset("ccdv/pubmed-summarization")
 rouge = load_metric('rouge')
+query = "in a study from north india , men constituted 70% of our registry , more than those reported from vellore registry ( 48% ) , but similar to those reported in the endorse ( epidemiologic international day for the evaluation of patients at risk for vte in the acute hospital care setting ) study ( 69% ) ."
 
 if __name__ == "__main__":
     #main()
-    query_predict(['this is a test. Sent two.'], 0, 1000)
+    query_predict([query], 1, 1000)
+
+#[7, 20, 31, 38, 54]
+ #a total of 39% ( 215/549 ) patients were diagnosed with vte during their hospital stay , 54% ( 296/549 ) were admitted to hospital with a diagnosis of vte , and 7% ( 38/549 ) were diagnosed and continued to be managed in the outpatient department [ figure 2 ] .co - morbidities in venous thromboembolism patients of the 476 patients with dvt , 2% ( 9 ) had upper extremity dvt , 97% ( 462 ) had lower extremity dvt and the site of dvt was not known in 5 patients .in a study from north india , men constituted 70% of our registry , more than those reported from vellore registry ( 48% ) , but similar to those reported in the endorse ( epidemiologic international day for the evaluation of patients at risk for vte in the acute hospital care setting ) study ( 69% ) .of the 476 patients with dvt , 2% ( 9 ) had upper extremity dvt , 97% ( 462 ) had lower extremity dvt and the site of dvt was not known in 5 patients .of those diagnosed beyond 6 weeks diagnosis of venous thromboembolism during the postoperative period ( n = 81 ) the most common ( 73% ) symptom was swelling of the limb among patients with vte [ table 6 ] pe was confirmed by pulmonary angiography in 27% of all the patients [ table 7 ] .
