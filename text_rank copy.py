@@ -12,8 +12,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk import word_tokenize, sent_tokenize
 from nltk.stem import WordNetLemmatizer
 import nltk
+import pickle
+
 nltk.download('wordnet')
 nltk.download('omw-1.4')
+nltk.download('punkt')
 class LemmaTokenizer:
     def __init__(self):
         self.wnl = WordNetLemmatizer()
@@ -96,21 +99,28 @@ But Gorbachev saw his legacy wrecked late in life, as the invasion of Ukraine br
 
 #    print(similarity_table)
 
-def generate_score(graph: Graph, d: float=.85):
+def generate_score(graph: Graph, personalization = None, d:float=.85):
     i = 0
     n = graph.get_num_nodes()
+
+    if type(personalization) == None:
+        personalization = np.fill((n),1/n)
+
+    assert(personalization.shape[0] == n)
+    
     
     while(i < 100):
         node_rank = dict()
+        j = 0
         for node in graph.get_nodes():
-            rank = (1-d)/n
+            rank = (1-d)*personalization[j]
             for neighbor in graph.get_neighbors(node):
                 neighbor_sum = sum([graph.edge_weight(neighbor, out) for out in graph.get_neighbors(neighbor)])
                 
                 rank += d * neighbor.get_score() * graph.edge_weight(neighbor,node)/ neighbor_sum
 
             node_rank[node] = rank
-        
+            j += 1        
         converged = 0
         for node,rank in node_rank.items():
             converged += abs(rank - node.get_score())
@@ -120,6 +130,7 @@ def generate_score(graph: Graph, d: float=.85):
             return graph
 
         i += 1
+        print(i)
         
     return graph
 
@@ -215,21 +226,19 @@ def compute_query_tf_idf(query, doc_freq, N):
 
 
 
-
-
-
 def soft_max(x):
     den = sum([exp(z) for z in x])
     return np.array([exp(z)/den for z in x])
 
 
     
-
-    
 def query_predict(abs_sum, i, max_len):
-    pred_sum = dataset['validation'][i]['article']
-    pred_sum_sentences = sent_tokenize(pred_sum)
-    print(pred_sum_sentences)
+    #Removes white space since dataset has some problems with repeating lines
+    pred_sum = ' '.join(dataset['validation'][i]['article'].split())
+    
+    #Remove sentence duplicates
+    pred_sum_sentences = np.unique(sent_tokenize(pred_sum))
+   
     vectorizer = TfidfVectorizer(tokenizer=LemmaTokenizer())
     tfidf_mat = vectorizer.fit_transform(pred_sum_sentences).toarray()
     query_tfidf = vectorizer.transform(abs_sum).toarray()
@@ -240,24 +249,30 @@ def query_predict(abs_sum, i, max_len):
     xv, yv = np.meshgrid(np.arange(len(pred_sum_sentences)),np.arange(len(pred_sum_sentences)), indexing='ij')
     similarity_table = np.zeros(xv.shape)
 
-    print(tfidf_mat.shape)
     for i in range(len(xv)):
         for j in range(len(yv)):
             if xv[i,j] != yv[i,j]:
                 similarity_table[xv[i,j], yv[i,j]] = tfidf_mat[xv[i,j],:] @ tfidf_mat[yv[i,j],:]
 
-    #tf_idf_table, doc_freq = compute_doc_tf_idf(pred_sum_sentences)
-    #print([tok.lemma_ for tok in nlp(abs_sum)])
 
-   # query_tf_idf = compute_query_tf_idf([nlp(abs_sum)], doc_freq, len(pred_sum_sentences))
+    graph = Graph(similarity_table)
+    graph = generate_score(graph, personalization_vec)
 
-    Graph(similarity_table)
-    generate_score()
+    # pickle.dump(graph, open('graph.m', 'wb'))
+    
+    # graph = pickle.load(open('graph.m', 'rb'))
+    # print(sum(graph.get_scores()))
+    ranked = sorted(np.argsort(graph.get_scores())[::-1][:5])
+    
+    final_summary = ''
+    for rank in ranked:
+        final_summary += pred_sum_sentences[rank]
+
+    return final_summary
+    
 
 
-
-
-
+#[6, 7, 9, 30, 40]
 
 
 dataset = load_dataset("ccdv/pubmed-summarization")
