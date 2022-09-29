@@ -104,35 +104,23 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
     i = 0
     n = graph.get_num_nodes()
 
-    if type(personalization) == None:
-        personalization = np.fill((n),1/n)
+    if type(personalization) == type(None):
+        personalization = np.full((n),1/n)
 
     assert(personalization.shape[0] == n)
 
-    while(i < 9):
-        print('loop',i,flush=True)
-        node_rank = dict()
-        j = 0
-        for node in graph.get_nodes():
-            rank = (1-d)*personalization[j]
-            for neighbor in graph.get_neighbors(node):
-                neighbor_sum = sum([graph.edge_weight(neighbor, out) for out in graph.get_neighbors(neighbor)])
-                
-                rank += d * neighbor.get_score() * graph.edge_weight(neighbor,node)/ neighbor_sum
+    M = (graph.get_negihbor_weights() * graph.get_weighted_list())
 
-            node_rank[node] = rank
-            j += 1        
-        converged = 0
-        for node,rank in node_rank.items():
-            converged += abs(rank - node.get_score())
-            node.set_score(rank)
-#        print(converged)
-        if converged <= .0001:
+
+    while(i < 10):
+        old_score = graph.get_scores()
+        new_score = d*(M @ old_score) + (1-d)*personalization
+        graph.set_scores(new_score)
+
+        if np.sum(np.abs(old_score-new_score)) <= .0001:
             return graph
 
         i += 1
-#        print(i)
-        
     return graph
 
 
@@ -297,6 +285,10 @@ dataset = load_dataset("ccdv/pubmed-summarization")
 rouge = load_metric('rouge')
 query = "in a study from north india , men constituted 70% of our registry , more than those reported from vellore registry ( 48% ) , but similar to those reported in the endorse ( epidemiologic international day for the evaluation of patients at risk for vte in the acute hospital care setting ) study ( 69% ) ."
 
+# def page_rank_test():
+#     weights = np.array([[0, .4, .3], [.4, 0, .8], [.3, .8, 0]])
+#     graph = Graph(weights)
+#     generate_score(graph)
 if __name__ == "__main__":
     #main()
     t = 0

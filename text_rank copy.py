@@ -104,22 +104,26 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
     i = 0
     n = graph.get_num_nodes()
 
-    if type(personalization) == None:
-        personalization = np.fill((n),1/n)
+    if type(personalization) == type(None):
+        personalization = np.full((n),1/n)
 
     assert(personalization.shape[0] == n)
     print(personalization)
     
-    while(i < 100):
+    while(i < 10):
         node_rank = dict()
         j = 0
         for node in graph.get_nodes():
             rank = (1-d)*personalization[j]
+            k = 0
             for neighbor in graph.get_neighbors(node):
                 neighbor_sum = sum([graph.edge_weight(neighbor, out) for out in graph.get_neighbors(neighbor)])
-                
+                print('Running', 'Node',j,'Neighbor',k, 'Sum', neighbor_sum, 'edge_weight', graph.edge_weight(neighbor,node))
+                print('M', graph.edge_weight(neighbor,node)/ neighbor_sum)
                 rank += d * neighbor.get_score() * graph.edge_weight(neighbor,node)/ neighbor_sum
+                k+=1
 
+            print('Node',j, 'Rank',rank)
             node_rank[node] = rank
             j += 1        
         converged = 0
@@ -128,11 +132,12 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
             node.set_score(rank)
         print(converged)
         if converged <= .0001:
+            print(node_rank.values())
             return graph
 
         i += 1
         print(i)
-        
+    print(node_rank.values())
     return graph
 
 
@@ -284,7 +289,9 @@ query = "in a study from north india , men constituted 70% of our registry , mor
 
 if __name__ == "__main__":
     #main()
-    query_predict([query], 1, 1000)
-
+    #query_predict([query], 1, 1000)
+    weights = np.array([[0, .4, .3], [.4, 0, .8], [.3, .8, 0]])
+    graph = Graph(weights)
+    generate_score(graph)
 #[7, 20, 31, 38, 54]
  #a total of 39% ( 215/549 ) patients were diagnosed with vte during their hospital stay , 54% ( 296/549 ) were admitted to hospital with a diagnosis of vte , and 7% ( 38/549 ) were diagnosed and continued to be managed in the outpatient department [ figure 2 ] .co - morbidities in venous thromboembolism patients of the 476 patients with dvt , 2% ( 9 ) had upper extremity dvt , 97% ( 462 ) had lower extremity dvt and the site of dvt was not known in 5 patients .in a study from north india , men constituted 70% of our registry , more than those reported from vellore registry ( 48% ) , but similar to those reported in the endorse ( epidemiologic international day for the evaluation of patients at risk for vte in the acute hospital care setting ) study ( 69% ) .of the 476 patients with dvt , 2% ( 9 ) had upper extremity dvt , 97% ( 462 ) had lower extremity dvt and the site of dvt was not known in 5 patients .of those diagnosed beyond 6 weeks diagnosis of venous thromboembolism during the postoperative period ( n = 81 ) the most common ( 73% ) symptom was swelling of the limb among patients with vte [ table 6 ] pe was confirmed by pulmonary angiography in 27% of all the patients [ table 7 ] .
