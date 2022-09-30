@@ -18,12 +18,13 @@ Fine-tuning the library models for sequence to sequence.
 """
 # You can also adapt this script on your own sequence to sequence task. Pointers for this are left as comments.
 
+import csv
 import logging
 import os
 import sys
 from dataclasses import dataclass, field
 from typing import Optional
-from nltk_summary import query_predict 
+from text_rankcopy import query_predict 
 import datasets
 import nltk  # Here to have a nice missing dependency error message early on
 import numpy as np
@@ -56,6 +57,7 @@ check_min_version("4.19.0.dev0")
 require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/summarization/requirements.txt")
 
 logger = logging.getLogger(__name__)
+exclude_idx = [2320, 4923, 5210]
 
 try:
     nltk.data.find("tokenizers/punkt")
@@ -345,7 +347,7 @@ def main():
             data_args.dataset_config_name,
             cache_dir=model_args.cache_dir,
             use_auth_token=True if model_args.use_auth_token else None,
-        )
+        ).filter(lambda example, i: i not in exclude_idx, with_indices=True)
     else:
         data_files = {}
         if data_args.train_file is not None:
@@ -543,6 +545,7 @@ def main():
             )
 
     if training_args.do_predict:
+        assert(False)
         max_target_length = data_args.val_max_target_length
         if "test" not in raw_datasets:
             raise ValueError("--do_predict requires a test dataset")
@@ -584,24 +587,34 @@ def main():
 
     def compute_metrics(eval_preds):
             preds, labels = eval_preds
-            
+                      
             if isinstance(preds, tuple):
                 preds = preds[0]
             decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
             if data_args.ignore_pad_token_for_loss:
                 # Replace -100 in the labels as we can't decode them.
                 labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+            print('pad', tokenizer.pad_token_id)
             decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+            print('Decoded',decoded_labels)
             
             # ADD BM25 stuff here
-            for i in range(len(decoded_labels)):
-                if i == 0:
-                    print('Abstract: ',decoded_labels[i])
-                decoded_preds[i] = query_predict(decoded_preds[i],i, max_length)
             
-            # Some simple post-processing
-            decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
+            whole_summary = list()
 
+            for i in range(len(decoded_labels)):
+                #decoded_preds[i], summary = query_predict(decoded_preds[i],i, max_length)
+                _, summary = query_predict(decoded_preds[i],i,max_length)
+                whole_summary.append(summary)
+            
+            #print('pred',decoded_preds)
+            #print('labels',decoded_labels)
+            # Some simple post-processing
+            
+            #print('Real',len(whole_summary[0]))
+            #print('Gen',len(decoded_preds[0]))
+            
+            decoded_preds, decoded_labels = postprocess_text(decoded_preds, whole_summary)
 
 
             result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
@@ -634,6 +647,7 @@ def main():
 #        result = {k: round(v, 4) for k, v in result.items()}
 #        return result
 
+    
     # Initialize our Trainer
     trainer = Seq2SeqTrainer(
         model=model,
@@ -672,6 +686,8 @@ def main():
         if training_args.generation_max_length is not None
         else data_args.val_max_target_length
     )
+    print('max_length', max_length)
+
     num_beams = data_args.num_beams if data_args.num_beams is not None else training_args.generation_num_beams
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
@@ -734,3 +750,5 @@ def _mp_fn(index):
 
 if __name__ == "__main__":
     main()
+
+

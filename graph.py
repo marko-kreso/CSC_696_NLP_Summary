@@ -1,18 +1,22 @@
 from typing import List
 from typing import Type
 import numpy as np
+import warnings
 class Graph:
 
     def __init__(self, weighted_adjacency_list):
         self.nodes:List[Type['Node']] = list()
         self.neighbors = dict()
         self.weighted_list = weighted_adjacency_list
-        self.neighbor_weights = 1/(self.weighted_list @ np.ones(self.weighted_list.shape[0]))
+        try:
+            self.neighbor_weights = 1/(self.weighted_list @ np.ones(self.weighted_list.shape[0]))
+        except Exception as e:
+            print(self.weighted_list , flush=True)
+            raise e
         #Invert the matrix which in this case is equivilent to:
         #self.neighbor_weights = [1/x for x in self.neighbor_weights]
 
         #print(1/self.neighbor_weights)
-        print('Neighbor_sum',1/self.neighbor_weights)
         self.n = weighted_adjacency_list.shape[0]
         self.scores = np.full((self.n),1/self.n)
 

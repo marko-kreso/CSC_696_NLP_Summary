@@ -6,6 +6,59 @@ python run_modified_summarization.py \
 	--dataset_name ccdv/pubmed-summarization \
 	--summary_column abstract \
 	--text_column article \
-	--per_device_eval_batch_size=15 \
+	--generation_max_length=200 \
+	--per_device_eval_batch_size=20 \
 	--predict_with_generate \
 	--output_dir ./BARTBM25-Pubmed_eval
+
+
+# ***** eval metrics ***** 100 examples (Base)
+#   eval_gen_len            =     126.39
+#   eval_loss               =     2.1131
+#   eval_rouge1             =    17.5051
+#   eval_rouge2             =     1.4327
+#   eval_rougeL             =    10.7089
+#   eval_rougeLsum          =    15.8872
+#   eval_runtime            = 0:16:31.42
+#   eval_samples            =        100
+#   eval_samples_per_second =      0.101
+#   eval_steps_per_second   =      0.005
+
+# ***** eval metrics *****
+#   eval_gen_len            =     126.39
+#   eval_loss               =     2.1131
+#   eval_rouge1             =    19.9489
+#   eval_rouge2             =     1.4875
+#   eval_rougeL             =    11.0795
+#   eval_rougeLsum          =    16.8198
+#   eval_runtime            = 0:16:37.16
+#   eval_samples            =        100
+#   eval_samples_per_second =        0.1
+#   eval_steps_per_second   =      0.005
+
+
+
+# ***** eval metrics ***** Textrank method whole
+#   eval_gen_len            =   127.9403
+#   eval_loss               =     2.1627
+#   eval_rouge1             =    19.6727
+#   eval_rouge2             =     1.4118
+#   eval_rougeL             =    11.0739
+#   eval_rougeLsum          =    16.5916
+#   eval_runtime            = 0:47:17.77
+#   eval_samples            =       6630
+#   eval_samples_per_second =      2.336
+#   eval_steps_per_second   =      0.117
+#Look into shorter summaries
+
+# ***** eval metrics *****
+#   eval_gen_len            =   127.9403
+#   eval_loss               =     2.1627
+#   eval_rouge1             =    17.4902
+#   eval_rouge2             =     1.4119
+#   eval_rougeL             =    10.8816
+#   eval_rougeLsum          =    15.9118
+#   eval_runtime            = 0:46:54.03
+#   eval_samples            =       6630
+#   eval_samples_per_second =      2.356
+#   eval_steps_per_second   =      0.118

@@ -112,7 +112,7 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
     M = (graph.get_negihbor_weights() * graph.get_weighted_list())
 
 
-    while(i < 10):
+    for i in range(50):
         old_score = graph.get_scores()
         new_score = d*(M @ old_score) + (1-d)*personalization
         graph.set_scores(new_score)
@@ -120,7 +120,6 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
         if np.sum(np.abs(old_score-new_score)) <= .0001:
             return graph
 
-        i += 1
     return graph
 
 
@@ -225,17 +224,32 @@ def query_predict(abs_sum, i, max_len):
     if type(abs_sum) == str:
         abs_sum = [abs_sum]    
 
+    
 
     #Removes white space since dataset has some problems with repeating lines
     pred_sum = ' '.join(dataset['validation'][i]['article'].split())
     
     
+    
     #Remove sentence duplicates
     pred_sum_sentences = np.unique(sent_tokenize(pred_sum))
-    
+    pred_sum_sentences = [sent for sent in pred_sum_sentences if len(sent.split()) > 5]
     vectorizer = TfidfVectorizer(tokenizer=LemmaTokenizer())
-    tfidf_mat = vectorizer.fit_transform(pred_sum_sentences).toarray()
-    query_tfidf = vectorizer.transform(abs_sum).toarray()
+   
+    try:
+        tfidf_mat = vectorizer.fit_transform(pred_sum_sentences).toarray()
+    except Exception as e:
+        print(e)
+        print(pred_sum)
+        print(pred_sum_sentences)
+        raise e
+
+    try:
+        query_tfidf = vectorizer.transform(abs_sum).toarray()
+    except ValueError as e:
+        print(e)
+        print('Query error',abs_sum)
+
 
 
     #Create personalization vector that will influence text rank algorithm. 
@@ -274,22 +288,39 @@ def query_predict(abs_sum, i, max_len):
         final_summary += pred_sum_sentences[rank]
 
     #print('max_len', max_len, 'FINAL_SUM', len(final_summary.split()))
-    return i,final_summary, dataset['validation'][i]['abstract']
+    return final_summary, dataset['validation'][i]['abstract']
     
 
 
 #[6, 7, 9, 30, 40]
+exclude_idx = [2320, 4923, 5210]
 
 
-dataset = load_dataset("ccdv/pubmed-summarization")
-rouge = load_metric('rouge')
+dataset = load_dataset("ccdv/pubmed-summarization").filter(lambda example, i: i not in exclude_idx, with_indices=True)
+
+#rouge = load_metric('rouge')
 query = "in a study from north india , men constituted 70% of our registry , more than those reported from vellore registry ( 48% ) , but similar to those reported in the endorse ( epidemiologic international day for the evaluation of patients at risk for vte in the acute hospital care setting ) study ( 69% ) ."
 
 # def page_rank_test():
 #     weights = np.array([[0, .4, .3], [.4, 0, .8], [.3, .8, 0]])
 #     graph = Graph(weights)
 #     generate_score(graph)
+
+def test():
+    with open('output2', 'r') as f:
+        reader = csv.DictReader(f)
+        quries = [row['query'] for row in reader]
+
+    print(quries[350])
+    query_predict(quries[350],350, 200)
+
+
 if __name__ == "__main__":
+    exclude_idx = [2320, 4923, 5210]
+    # print(dataset['validation'][5210])
+    # assert(False)
+    #test()
+    #assert(False)
     #main()
     t = 0
  #   for i in range(150):
@@ -303,9 +334,9 @@ if __name__ == "__main__":
     with open('output2', 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            quries.append((row['index'],row['query']))
-
-    processes = [pool.apply_async(query_predict, args=(quries[x][1], x, 200,)) for x in range(0,6633)]
+            quries.append((row['index'],row['query'].replace("<S>", "").replace("</S>","")))
+    
+    processes = [pool.apply_async(query_predict, args=(quries[x][1], x, 200,)) for x in range(0,6633) if x not in exclude_idx]
     result = [p.get() for p in processes]
     with open('output3', 'w') as f:
                 writer = csv.writer(f)
