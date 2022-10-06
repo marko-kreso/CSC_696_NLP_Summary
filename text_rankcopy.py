@@ -218,7 +218,7 @@ def soft_max(x):
     return np.exp(x)/sum(np.exp(x))
 
 
-    
+alpha = .85 
 def query_predict(abs_sum, i, max_len):
     print('Doc', i, flush=True)
     if type(abs_sum) == str:
@@ -254,9 +254,9 @@ def query_predict(abs_sum, i, max_len):
 
     #Create personalization vector that will influence text rank algorithm. 
     #Biases teleportion based on the query
-    personalization_vec = (tfidf_mat @ query_tfidf.T).flatten()
    # personalization_vec = soft_max(personalization_vec)
 
+    personalization_vec = (tfidf_mat @ query_tfidf.T).flatten()
     personalization_vec =  personalization_vec / sum(personalization_vec)
     assert(sum(personalization_vec) - 1 <= .001)
 
@@ -272,21 +272,26 @@ def query_predict(abs_sum, i, max_len):
 
     
     graph = Graph(similarity_table)
-    graph = generate_score(graph, personalization_vec, .1)
+    #graph = generate_score(graph, personalization_vec, .1)
+    graph = generate_score(graph, personalization_vec,d=alpha)
 
     #Get top 5 ranked sentences and arrange in order they appear in article.
 
-    ranked = sorted(np.argsort(graph.get_scores())[::-1])
-
-    final_summary = ''
+    ranked = np.argsort(graph.get_scores())[::-1]
+    
+    final_len = 0
+    j = 0
     #print(ranked)
     for rank in ranked:
-        #print(rank)
-        #print('length', len(final_summary.split()) + len(pred_sum_sentences[rank].split()))
-        if len(final_summary.split()) + len(pred_sum_sentences[rank].split()) > max_len:
+        
+        if final_len + len(pred_sum_sentences[rank].split()) > max_len:
             break
-        final_summary += pred_sum_sentences[rank]
-
+        final_len += len(pred_sum_sentences[rank].split())
+        j+=1
+    
+    
+    final_summary = ' '.join([pred_sum_sentences[r] for r in sorted(ranked[:j])])
+    
     #print('max_len', max_len, 'FINAL_SUM', len(final_summary.split()))
     return final_summary, dataset['validation'][i]['abstract']
     
@@ -305,7 +310,8 @@ query = "in a study from north india , men constituted 70% of our registry , mor
 #     weights = np.array([[0, .4, .3], [.4, 0, .8], [.3, .8, 0]])
 #     graph = Graph(weights)
 #     generate_score(graph)
-
+def test2():
+    query_predict(query, 0, 400)
 def test():
     with open('output2', 'r') as f:
         reader = csv.DictReader(f)
@@ -319,8 +325,8 @@ if __name__ == "__main__":
     exclude_idx = [2320, 4923, 5210]
     # print(dataset['validation'][5210])
     # assert(False)
-    #test()
-    #assert(False)
+    test2()
+    assert(False)
     #main()
     t = 0
  #   for i in range(150):

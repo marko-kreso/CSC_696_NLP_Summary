@@ -603,8 +603,8 @@ def main():
             whole_summary = list()
 
             for i in range(len(decoded_labels)):
-                #decoded_preds[i], summary = query_predict(decoded_preds[i],i, max_length)
-                _, summary = query_predict(decoded_preds[i],i,max_length)
+                decoded_preds[i], summary = query_predict(decoded_preds[i],i, max_length)
+                #_, summary = query_predict(decoded_preds[i],i,max_length)
                 whole_summary.append(summary)
             
             #print('pred',decoded_preds)

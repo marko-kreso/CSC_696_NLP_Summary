@@ -38,6 +38,8 @@ python run_modified_summarization.py \
 
 
 
+
+
 # ***** eval metrics ***** Textrank method whole
 #   eval_gen_len            =   127.9403
 #   eval_loss               =     2.1627
@@ -49,9 +51,17 @@ python run_modified_summarization.py \
 #   eval_samples            =       6630
 #   eval_samples_per_second =      2.336
 #   eval_steps_per_second   =      0.117
-#Look into shorter summaries
 
-# ***** eval metrics *****
+#include short summary and include regular textrank
+
+#Look into shorter summaries (User study)
+
+#Write section 3 (Methodology/Approach) Wednesday next week
+
+#https://github.com/clulab/clulab/wiki/Structure-of-Academic-Papers-&--Common-Writing-Issues
+#https://doodle.com/meeting/participate/id/b6RqP1lb
+
+# ***** eval metrics ***** base
 #   eval_gen_len            =   127.9403
 #   eval_loss               =     2.1627
 #   eval_rouge1             =    17.4902
@@ -62,3 +72,19 @@ python run_modified_summarization.py \
 #   eval_samples            =       6630
 #   eval_samples_per_second =      2.356
 #   eval_steps_per_second   =      0.118
+
+
+# ***** eval metrics ***** New method 200
+#   eval_gen_len            =   127.9403
+#   eval_loss               =     2.1627
+#   eval_rouge1             =     20.026
+#   eval_rouge2             =     1.6384
+#   eval_rougeL             =    11.8364
+#   eval_rougeLsum          =    17.9544
+#   eval_runtime            = 0:47:00.51
+#   eval_samples            =       6630
+#   eval_samples_per_second =      2.351
+#   eval_steps_per_second   =      0.118
+
+
+#textrank
