@@ -50,7 +50,7 @@ for i in range(0,6630,10):
     summaries.append(summary_ids)
     print(i)
 
-summaries = [tokenizer.batch_decode(summary) for summary in summaries]
+summaries = [tokenizer.batch_decode(summary,skip_special_tokens=True) for summary in summaries]
 
 with open('sums500.pickle', 'wb') as f:
     pickle.dump(summaries, f)

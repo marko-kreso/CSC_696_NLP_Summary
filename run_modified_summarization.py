@@ -29,7 +29,7 @@ import datasets
 import nltk  # Here to have a nice missing dependency error message early on
 import numpy as np
 from datasets import load_dataset, load_metric
-
+import evaluate
 import transformers
 from filelock import FileLock
 from transformers import (
@@ -573,7 +573,7 @@ def main():
     )
 
     # Metric
-    metric = load_metric("rouge")
+    metric = evaluate.load("rouge")
 
     def postprocess_text(preds, labels):
         preds = [pred.strip() for pred in preds]
@@ -601,11 +601,21 @@ def main():
             # ADD BM25 stuff here
             
             whole_summary = list()
-
-            for i in range(len(decoded_labels)):
-                decoded_preds[i], summary = query_predict(decoded_preds[i],i, max_length)
-                #_, summary = query_predict(decoded_preds[i],i,max_length)
-                whole_summary.append(summary)
+            with open('outputnew200.csv', 'w') as file:
+                writer = csv.writer(file)
+                header = ['index', 'abstract', 'query']
+                writer.writerow(header)
+                for i in range(len(decoded_labels)):
+                    #print('############')
+                    #print('query', decoded_preds[i])
+                    query = decoded_preds[i]
+                    print("len", len(query))
+                    #decoded_preds[i], summary = query_predict(decoded_preds[i],i, max_length)
+                    #print('abs_sum', decoded_preds[i])
+                    #print('summary_only')
+                    _, summary = query_predict(decoded_preds[i],i,max_length)
+                    writer.writerow([i, summary, query])
+                    whole_summary.append(summary)
             
             #print('pred',decoded_preds)
             #print('labels',decoded_labels)
@@ -616,15 +626,18 @@ def main():
             
             decoded_preds, decoded_labels = postprocess_text(decoded_preds, whole_summary)
 
-
+            print('predictions',decoded_preds[0])
+            #print('labels',decoded_labels[0])
             result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
+            print(result)
             # Extract a few results from ROUGE
-            result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+#            result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
 
             prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
             result["gen_len"] = np.mean(prediction_lens)
             result = {k: round(v, 4) for k, v in result.items()}
             return result
+            # {'rouge1': 0.25052002720900657, 'rouge2': 0.022333150302001697, 'rougeL': 0.12211520451117444, 'rougeLsum': 0.1695929493182961}
 #    def compute_metrics(eval_preds):
 #        preds, labels = eval_preds
 #        if isinstance(preds, tuple):

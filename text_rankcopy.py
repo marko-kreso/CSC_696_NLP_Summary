@@ -1,4 +1,5 @@
 from math import exp
+import torch
 from pickle import FALSE
 from pydoc import doc
 from typing import Set
@@ -12,8 +13,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk import word_tokenize, sent_tokenize
 from nltk.stem import WordNetLemmatizer
 import nltk
+import pandas as pd
 from sklearn.preprocessing import normalize
 import pickle, csv
+from sentence_transformers import SentenceTransformer, util
 import multiprocessing, time
 nltk.download('wordnet')
 nltk.download('omw-1.4')
@@ -105,19 +108,21 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
     n = graph.get_num_nodes()
 
     if type(personalization) == type(None):
-        personalization = np.full((n),1/n)
-
+        personalization = torch.Tensor(np.full((n),1/n))
+    print(personalization.shape) 
     assert(personalization.shape[0] == n)
 
-    M = (graph.get_negihbor_weights() * graph.get_weighted_list())
+    M = torch.Tensor(graph.get_negihbor_weights() * graph.get_weighted_list())
 
 
     for i in range(50):
-        old_score = graph.get_scores()
+        old_score = torch.Tensor(graph.get_scores())
+
+
         new_score = d*(M @ old_score) + (1-d)*personalization
         graph.set_scores(new_score)
 
-        if np.sum(np.abs(old_score-new_score)) <= .0001:
+        if torch.sum(torch.abs(old_score-new_score)) <= .0000001:
             return graph
 
     return graph
@@ -217,38 +222,49 @@ def compute_query_tf_idf(query, doc_freq, N):
 def soft_max(x):
     return np.exp(x)/sum(np.exp(x))
 
-
-alpha = .85 
-def query_predict(abs_sum, i, max_len):
-    print('Doc', i, flush=True)
+#when2meet
+sentence_transformer = SentenceTransformer('all-MiniLM-L6-v2')
+torch.set_default_tensor_type('torch.FloatTensor')
+def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1):
+    
+    print('Doc', doc_id, flush=True)
     if type(abs_sum) == str:
         abs_sum = [abs_sum]    
 
     
 
     #Removes white space since dataset has some problems with repeating lines
-    pred_sum = ' '.join(dataset['validation'][i]['article'].split())
-    
+    pred_sum = ' '.join(dataset['validation'][doc_id]['article'].split())
     
     
     #Remove sentence duplicates
-    pred_sum_sentences = np.unique(sent_tokenize(pred_sum))
+    pred_sum_sentences = pd.unique(sent_tokenize(pred_sum))
     pred_sum_sentences = [sent for sent in pred_sum_sentences if len(sent.split()) > 5]
     vectorizer = TfidfVectorizer(tokenizer=LemmaTokenizer())
-   
-    try:
-        tfidf_mat = vectorizer.fit_transform(pred_sum_sentences).toarray()
-    except Exception as e:
-        print(e)
-        print(pred_sum)
-        print(pred_sum_sentences)
-        raise e
+    
+    if not bart_embed:
+        try:
+            tfidf_mat = vectorizer.fit_transform(pred_sum_sentences).toarray()
+            embeded_sentences = torch.Tensor(tfidf_mat)
 
-    try:
-        query_tfidf = vectorizer.transform(abs_sum).toarray()
-    except ValueError as e:
-        print(e)
-        print('Query error',abs_sum)
+        except Exception as e:
+            print('------------------ERROR-------------')
+            print(e)
+            print(pred_sum)
+            print(pred_sum_sentences)
+            raise e
+
+        try:
+            query_tfidf = vectorizer.transform(abs_sum).toarray()
+            embeded_query = torch.Tensor(query_tfidf)
+
+        except ValueError as e:
+            print(e)
+            print('Query error',abs_sum)
+            raise e
+    else:
+        embeded_sentences = torch.Tensor(sentence_transformer.encode(pred_sum_sentences))
+        embeded_query = torch.Tensor(sentence_transformer.encode(abs_sum))
 
 
 
@@ -256,28 +272,39 @@ def query_predict(abs_sum, i, max_len):
     #Biases teleportion based on the query
    # personalization_vec = soft_max(personalization_vec)
 
-    personalization_vec = (tfidf_mat @ query_tfidf.T).flatten()
-    personalization_vec =  personalization_vec / sum(personalization_vec)
-    assert(sum(personalization_vec) - 1 <= .001)
-
-
-
-    xv, yv = np.meshgrid(np.arange(len(pred_sum_sentences)),np.arange(len(pred_sum_sentences)), indexing='ij')
-    similarity_table = np.zeros(xv.shape)
-    #Calulate cosine similarities between every sentence
-    for i in range(len(xv)):
-        for j in range(len(yv)):
-            if xv[i,j] != yv[i,j]:
-                similarity_table[xv[i,j], yv[i,j]] = tfidf_mat[xv[i,j],:] @ tfidf_mat[yv[i,j],:]
-
+    old_personalization_vec = (embeded_sentences @ embeded_query.t()).flatten()
+    personalization_vec = util.cos_sim(embeded_query, embeded_sentences).flatten()
+    #print('DIF', sum((personalization_vec - new_person).flatten()))
+    assert(torch.sum(abs(personalization_vec - old_personalization_vec)) < .1)
     
+    old_personalization_vec =  personalization_vec / torch.sum(personalization_vec)
+    personalization_vec =  personalization_vec / torch.sum(personalization_vec)
+    assert(torch.sum(personalization_vec) - 1 <= .001)
+    assert(torch.sum(abs(personalization_vec - old_personalization_vec)) < .1)
+
+
+
+    # xv, yv = np.meshgrid(np.arange(len(pred_sum_sentences)),np.arange(len(pred_sum_sentences)), indexing='ij')
+    # similarity_table = np.zeros(xv.shape)
+    # #Calulate cosine similarities between every sentence
+    # for i in range(len(xv)):
+    #     for j in range(len(yv)):
+    #         if xv[i,j] != yv[i,j]:
+    #             similarity_table[xv[i,j], yv[i,j]] = tfidf_mat[xv[i,j],:] @ tfidf_mat[yv[i,j],:]
+
+    ind = np.diag_indices(embeded_sentences.shape[0])
+
+    #Remove edges that point to itself
+    similarity_table = util.cos_sim(embeded_sentences,embeded_sentences)
+    similarity_table[ind[0], ind[1]] = 0
+ 
     graph = Graph(similarity_table)
     #graph = generate_score(graph, personalization_vec, .1)
     graph = generate_score(graph, personalization_vec,d=alpha)
 
     #Get top 5 ranked sentences and arrange in order they appear in article.
 
-    ranked = np.argsort(graph.get_scores())[::-1]
+    ranked = np.argsort(graph.get_scores().tolist())[::-1]
     
     final_len = 0
     j = 0
@@ -291,9 +318,11 @@ def query_predict(abs_sum, i, max_len):
     
     
     final_summary = ' '.join([pred_sum_sentences[r] for r in sorted(ranked[:j])])
-    
+
+
+
     #print('max_len', max_len, 'FINAL_SUM', len(final_summary.split()))
-    return final_summary, dataset['validation'][i]['abstract']
+    return final_summary, dataset['validation'][doc_id]['abstract']
     
 
 
@@ -304,14 +333,14 @@ exclude_idx = [2320, 4923, 5210]
 dataset = load_dataset("ccdv/pubmed-summarization").filter(lambda example, i: i not in exclude_idx, with_indices=True)
 
 #rouge = load_metric('rouge')
-query = "in a study from north india , men constituted 70% of our registry , more than those reported from vellore registry ( 48% ) , but similar to those reported in the endorse ( epidemiologic international day for the evaluation of patients at risk for vte in the acute hospital care setting ) study ( 69% ) ."
+query = "<S> backgroundthe aim of the present study was to test whether coenzyme q10 supplementation could decrease mild - to - moderate statin - associated muscle pain.material/methodsthis was a double - blind, placebo - controlled study with balanced randomization. </S> <S> fifty patients of both sexes, aged between 40 and 65 years, were recruited in this study. before the inclusion to the study, all possible efforts to decrease symptoms and to identify possible association<S> backgroundthe aim of the present study was to test whether coenzyme q10 supplementation could decrease mild - to - moderate statin - associated muscle pain.material/methodsthis was a double - blind, placebo - controlled study with balanced randomization. </S> <S> fifty patients of both sexes, aged between 40 and 65 years, were recruited in this study. before the inclusion to the study, all possible efforts to decrease symptoms and to identify possible association"
 
 # def page_rank_test():
 #     weights = np.array([[0, .4, .3], [.4, 0, .8], [.3, .8, 0]])
 #     graph = Graph(weights)
 #     generate_score(graph)
 def test2():
-    query_predict(query, 0, 400)
+    print(query_predict(query, 5, 100)[0])
 def test():
     with open('output2', 'r') as f:
         reader = csv.DictReader(f)

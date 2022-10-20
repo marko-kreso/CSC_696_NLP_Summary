@@ -1,6 +1,7 @@
 from typing import List
 from typing import Type
 import numpy as np
+import torch
 import warnings
 class Graph:
 
@@ -9,16 +10,15 @@ class Graph:
         self.neighbors = dict()
         self.weighted_list = weighted_adjacency_list
         try:
-            self.neighbor_weights = 1/(self.weighted_list @ np.ones(self.weighted_list.shape[0]))
+            print(type(self.weighted_list))
+            
+            self.neighbor_weights = 1/(self.weighted_list @ torch.ones(self.weighted_list.shape[0]))
         except Exception as e:
             print(self.weighted_list , flush=True)
             raise e
         #Invert the matrix which in this case is equivilent to:
-        #self.neighbor_weights = [1/x for x in self.neighbor_weights]
-
-        #print(1/self.neighbor_weights)
         self.n = weighted_adjacency_list.shape[0]
-        self.scores = np.full((self.n),1/self.n)
+        self.scores = torch.full((self.n,),1/self.n)
 
         self.nodes = [Node(i,1/self.n) for i in range(self.scores.shape[0])]
 
