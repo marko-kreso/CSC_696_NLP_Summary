@@ -1,0 +1,121 @@
+***** eval metrics ***** base 
+  eval_gen_len            =     99.662
+  eval_loss               =     2.1627
+  eval_rouge1             =    30.1615
+  eval_rouge2             =    12.5675
+  eval_rougeL             =    19.7713
+  eval_rougeLsum          =    27.5799
+  eval_runtime            = 0:39:59.91
+  eval_samples            =       6630
+  eval_samples_per_second =      2.763
+  eval_steps_per_second   =      0.138
+
+***** eval metrics ***** new method
+  eval_gen_len            =     99.662
+  eval_loss               =     2.1627
+  eval_rouge1             =    29.7708
+  eval_rouge2             =    12.2373
+  eval_rougeL             =    19.3667
+  eval_rougeLsum          =    26.9278
+  eval_runtime            = 0:40:35.65
+  eval_samples            =       6630
+  eval_samples_per_second =      2.722
+  eval_steps_per_second   =      0.136
+
+
+***** eval metrics ***** newmethod 200
+  eval_gen_len            =   127.9403
+  eval_loss               =     2.1627
+  eval_rouge1             =     40.796
+  eval_rouge2             =    16.4265
+  eval_rougeL             =    23.6764
+  eval_rougeLsum          =    37.0379
+  eval_runtime            = 0:47:56.55
+  eval_samples            =       6630
+  eval_samples_per_second =      2.305
+  eval_steps_per_second   =      0.115
+
+ ***** eval metrics ***** newmethod 400
+  eval_gen_len            =   127.9403
+  eval_loss               =     2.1627
+  eval_rouge1             =    40.6191
+  eval_rouge2             =     17.341
+  eval_rougeL             =    22.7683
+  eval_rougeLsum          =    37.1317
+  eval_runtime            = 0:50:32.00
+  eval_samples            =       6630
+  eval_samples_per_second =      2.187
+  eval_steps_per_second   =      0.109
+  
+  newmethod 100
+  {'rouge1': 0.29891265196028605, 'rouge2': 0.12278367903311171, 'rougeL': 0.19424174921262066, 'rougeLsum': 0.27051066916836897}
+
+  newmethod 128 
+  {'rouge1': 0.34589401878062825, 'rouge2': 0.1403600466631484, 'rougeL': 0.2138502407216245, 'rougeLsum': 0.3132942557740991}
+  
+  newmethod 150
+  {'rouge1': 0.37065911571007837, 'rouge2': 0.14992068428548627, 'rougeL': 0.22411115502412782, 'rougeLsum': 0.33625327030551644}
+  
+  newmethod 200
+  {'rouge1': 0.40838740263842843, 'rouge2': 0.16441793209497568, 'rougeL': 0.23679367824026099, 'rougeLsum': 0.3708260357745805} 
+  
+  newmethod 400
+  {'rouge1': 0.40527317327499734, 'rouge2': 0.17273001575775543, 'rougeL': 0.2271352729248708, 'rougeLsum': 0.37041908853958166}
+
+
+  base 100
+  {'rouge1': 0.3044849621102006, 'rouge2': 0.12778538592830846, 'rougeL': 0.2002501894761192, 'rougeLsum': 0.2785802708740668}
+  
+  base 128
+  {'rouge1': 0.3503860394838564, 'rouge2': 0.14484242452625568, 'rougeL': 0.21932824179815555, 'rougeLsum': 0.32044835099573565} 
+  
+  base 150
+  {'rouge1': 0.34951982551795757, 'rouge2': 0.14399758164641135, 'rougeL': 0.21929332617833863, 'rougeLsum': 0.3194918110213726}  
+
+  base 200
+  {'rouge1': 0.3494874812473996, 'rouge2': 0.14403849277624792, 'rougeL': 0.2192667244973145, 'rougeLsum': 0.31953563042361977}
+  
+  base 400
+  {'rouge1': 0.3495717889376745, 'rouge2': 0.14401690343374338, 'rougeL': 0.21929706964829782, 'rougeLsum': 0.3194872978555847}
+  
+
+
+  textrank 200
+  {'rouge1': 0.4091636273357371, 'rouge2': 0.16609974971444158, 'rougeL': 0.23819086363257788, 'rougeLsum': 0.3712559832653859}
+  
+  base 200
+  {'rouge1': 0.41168399162385216, 'rouge2': 0.16931025113783404, 'rougeL': 0.24921107801099812, 'rougeLsum': 0.37573759359398706}
+
+  base 400
+  {'rouge1': 0.43354709463504726, 'rouge2': 0.17574102713365453, 'rougeL': 0.25730065323083096, 'rougeLsum': 0.39592964145033915}
+
+  textrank 400
+  {'rouge1': 0.40873394680678476, 'rouge2': 0.16593474689506854, 'rougeL': 0.23728214008487925, 'rougeLsum': 0.3701433051750693}
+  
+}
+
+
+####################
+test 100
+{'rouge1': 0.2990867990831292, 'rouge2': 0.12270871868283421, 'rougeL': 0.1943392775977569, 'rougeLsum': 0.2706373778982415}
+base 100
+{'rouge1': 0.3044936086704818, 'rouge2': 0.12776073188089243, 'rougeL': 0.20032407681103362, 'rougeLsum': 0.2786023047026913}
+
+recheck
+test 150
+{'rouge1': 0.37045504530358686, 'rouge2': 0.1490521457766859, 'rougeL': 0.22384252085568035, 'rougeLsum': 0.33515068967248085}
+base 150
+{'rouge1': 0.4111261349109083, 'rouge2': 0.16810305106688678, 'rougeL': 0.2482793266129965, 'rougeLsum': 0.37515594975821454}
+
+test 200
+{'rouge1': 0.4087294631788448, 'rouge2': 0.16574655186920856, 'rougeL': 0.23782766085257706, 'rougeLsum': 0.3713290678681966}
+base 200
+{'rouge1': 0.4110482393739993, 'rouge2': 0.16819285001650386, 'rougeL': 0.24825339542365282, 'rougeLsum': 0.37517532131471243}
+
+test 400
+{'rouge1': 0.4101367858003933, 'rouge2': 0.1750821841043278, 'rougeL': 0.22642080735511733, 'rougeLsum': 0.37335941209121465}
+base 400
+{'rouge1': 0.3704330033095653, 'rouge2': 0.14795431430787304, 'rougeL': 0.20400612652109565, 'rougeLsum': 0.34135308110617146}
+
+
+
