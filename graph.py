@@ -10,7 +10,7 @@ class Graph:
         self.neighbors = dict()
         self.weighted_list = weighted_adjacency_list
         try:
-            print(type(self.weighted_list))
+            # print(type(self.weighted_list))
             
             self.neighbor_weights = 1/(self.weighted_list @ torch.ones(self.weighted_list.shape[0]))
         except Exception as e:

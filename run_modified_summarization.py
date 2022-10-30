@@ -565,6 +565,8 @@ def main():
 
     # Data collator
     label_pad_token_id = -100 if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
+    print(training_args.fp16)
+    assert(False)
     data_collator = DataCollatorForSeq2Seq(
         tokenizer,
         model=model,
@@ -601,7 +603,7 @@ def main():
             # ADD BM25 stuff here
             
             whole_summary = list()
-            with open('outputnew200.csv', 'w') as file:
+            with open('outputTest200.csv', 'w') as file:
                 writer = csv.writer(file)
                 header = ['index', 'abstract', 'query']
                 writer.writerow(header)

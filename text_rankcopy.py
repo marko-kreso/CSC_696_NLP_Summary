@@ -109,7 +109,6 @@ def generate_score(graph: Graph, personalization = None, d:float=.85):
 
     if type(personalization) == type(None):
         personalization = torch.Tensor(np.full((n),1/n))
-    print(personalization.shape) 
     assert(personalization.shape[0] == n)
 
     M = torch.Tensor(graph.get_negihbor_weights() * graph.get_weighted_list())
@@ -222,19 +221,36 @@ def compute_query_tf_idf(query, doc_freq, N):
 def soft_max(x):
     return np.exp(x)/sum(np.exp(x))
 
+    
+dataset = None 
+
+def load_data(split): 
+    global dataset 
+    if dataset == None:
+        if split == 'test':
+            dataset = load_dataset("scientific_papers",'pubmed')
+        elif split == 'validation':
+            dataset = load_dataset("scientific_papers",'pubmed').filter(lambda example, i: i not in exclude_idx, with_indices=True)
+        else:
+            raise Exception
+        dataset.remove_columns(
+            'section_names'
+        )
+        print(dataset)
+        print(split)
+    return dataset
 #when2meet
 sentence_transformer = SentenceTransformer('all-MiniLM-L6-v2')
 torch.set_default_tensor_type('torch.FloatTensor')
-def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1):
-    
-    print('Doc', doc_id, flush=True)
+def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1, split='validation'):
+    dataset = load_data(split)
+    print('Doc', doc_id, flush=True, end='\r')
     if type(abs_sum) == str:
         abs_sum = [abs_sum]    
 
-    
 
     #Removes white space since dataset has some problems with repeating lines
-    pred_sum = ' '.join(dataset['validation'][doc_id]['article'].split())
+    pred_sum = ' '.join(dataset[split][doc_id]['article'].split())
     
     
     #Remove sentence duplicates
@@ -322,7 +338,8 @@ def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1):
 
 
     #print('max_len', max_len, 'FINAL_SUM', len(final_summary.split()))
-    return final_summary, dataset['validation'][doc_id]['abstract']
+    # return final_summary, dataset['validation'][doc_id]['abstract']
+    return final_summary
     
 
 
@@ -330,20 +347,18 @@ def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1):
 exclude_idx = [2320, 4923, 5210]
 
 
-dataset = load_dataset("ccdv/pubmed-summarization").filter(lambda example, i: i not in exclude_idx, with_indices=True)
-
 #rouge = load_metric('rouge')
-query = "<S> backgroundthe aim of the present study was to test whether coenzyme q10 supplementation could decrease mild - to - moderate statin - associated muscle pain.material/methodsthis was a double - blind, placebo - controlled study with balanced randomization. </S> <S> fifty patients of both sexes, aged between 40 and 65 years, were recruited in this study. before the inclusion to the study, all possible efforts to decrease symptoms and to identify possible association<S> backgroundthe aim of the present study was to test whether coenzyme q10 supplementation could decrease mild - to - moderate statin - associated muscle pain.material/methodsthis was a double - blind, placebo - controlled study with balanced randomization. </S> <S> fifty patients of both sexes, aged between 40 and 65 years, were recruited in this study. before the inclusion to the study, all possible efforts to decrease symptoms and to identify possible association"
+query = "<s> backgroundthe aim of the present study was to test whether coenzyme q10 supplementation could decrease mild - to - moderate statin - associated muscle pain.material/methodsthis was a double - blind, placebo - controlled study with balanced randomization. </s> <s> fifty patients of both sexes, aged between 40 and 65 years, were recruited in this study. before the inclusion to the study, all possible efforts to decrease symptoms and to identify possible association<s> backgroundthe aim of the present study was to test whether coenzyme q10 supplementation could decrease mild - to - moderate statin - associated muscle pain.material/methodsthis was a double - blind, placebo - controlled study with balanced randomization. </s> <s> fifty patients of both sexes, aged between 40 and 65 years, were recruited in this study. before the inclusion to the study, all possible efforts to decrease symptoms and to identify possible association"
 
 # def page_rank_test():
 #     weights = np.array([[0, .4, .3], [.4, 0, .8], [.3, .8, 0]])
-#     graph = Graph(weights)
+#     graph = graph(weights)
 #     generate_score(graph)
 def test2():
     print(query_predict(query, 5, 100)[0])
 def test():
     with open('output2', 'r') as f:
-        reader = csv.DictReader(f)
+        reader = csv.dictreader(f)
         quries = [row['query'] for row in reader]
 
     print(quries[350])
@@ -353,9 +368,9 @@ def test():
 if __name__ == "__main__":
     exclude_idx = [2320, 4923, 5210]
     # print(dataset['validation'][5210])
-    # assert(False)
+    # assert(false)
     test2()
-    assert(False)
+    assert(false)
     #main()
     t = 0
  #   for i in range(150):
@@ -363,13 +378,13 @@ if __name__ == "__main__":
 #    print('avg', t/150)
     #print(len(dataset['validation'][215]['article'].split()))
 #    query_predict(query, 215, 1000)
-    pool = multiprocessing.Pool(4)
+    pool = multiprocessing.pool(4)
     start_time = time.perf_counter()
     quries = list()
     with open('output2', 'r') as f:
-        reader = csv.DictReader(f)
+        reader = csv.dictreader(f)
         for row in reader:
-            quries.append((row['index'],row['query'].replace("<S>", "").replace("</S>","")))
+            quries.append((row['index'],row['query'].replace("<s>", "").replace("</s>","")))
     
     processes = [pool.apply_async(query_predict, args=(quries[x][1], x, 200,)) for x in range(0,6633) if x not in exclude_idx]
     result = [p.get() for p in processes]
@@ -380,7 +395,7 @@ if __name__ == "__main__":
                 for i in range(len(result)):
                     writer.writerow([result[i][0], result[i][1], result[i][2]])
     finish_time = time.perf_counter()
-    print(f"Program finished in {finish_time-start_time} seconds")
+    print(f"program finished in {finish_time-start_time} seconds")
 
 #[7, 20, 31, 38, 54]
  #a total of 39% ( 215/549 ) patients were diagnosed with vte during their hospital stay , 54% ( 296/549 ) were admitted to hospital with a diagnosis of vte , and 7% ( 38/549 ) were diagnosed and continued to be managed in the outpatient department [ figure 2 ] .co - morbidities in venous thromboembolism patients of the 476 patients with dvt , 2% ( 9 ) had upper extremity dvt , 97% ( 462 ) had lower extremity dvt and the site of dvt was not known in 5 patients .in a study from north india , men constituted 70% of our registry , more than those reported from vellore registry ( 48% ) , but similar to those reported in the endorse ( epidemiologic international day for the evaluation of patients at risk for vte in the acute hospital care setting ) study ( 69% ) .of the 476 patients with dvt , 2% ( 9 ) had upper extremity dvt , 97% ( 462 ) had lower extremity dvt and the site of dvt was not known in 5 patients .of those diagnosed beyond 6 weeks diagnosis of venous thromboembolism during the postoperative period ( n = 81 ) the most common ( 73% ) symptom was swelling of the limb among patients with vte [ table 6 ] pe was confirmed by pulmonary angiography in 27% of all the patients [ table 7 ] .
@@ -389,8 +404,8 @@ if __name__ == "__main__":
 #   eval_loss               =      1.408
 #   eval_rouge1             =      43.75
 #   eval_rouge2             =     21.519
-#   eval_rougeL             =      28.75
-#   eval_rougeLsum          =       40.0
+#   eval_rougel             =      28.75
+#   eval_rougelsum          =       40.0
 #   eval_runtime            = 0:00:00.97
 #   eval_samples            =          1
 #   eval_samples_per_second =      1.025
