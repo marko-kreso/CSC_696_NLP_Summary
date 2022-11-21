@@ -1,16 +1,18 @@
 #!/usr/bin/bash
 
 python run_modified_summarization.py \
-	--model_name_or_path './BART-Pubmed_summarizer' \
+	--model_name_or_path './BART-Pubmed-Long' \
 	--do_eval \
 	--dataset_name ccdv/pubmed-summarization \
 	--summary_column abstract \
 	--text_column article \
-	--generation_max_length=200 \
-	--per_device_eval_batch_size=20 \
+	--generation_max_length=512 \
+	--per_device_eval_batch_size=10 \
+	--max_eval_samples=10\
 	--predict_with_generate \
 	--output_dir ./BARTBM25-Pubmed_eval
 
+#	--max_eval_samples=10 \
 
 # ***** eval metrics ***** 100 examples (Base)
 #   eval_gen_len            =     126.39
@@ -86,5 +88,14 @@ python run_modified_summarization.py \
 #   eval_samples_per_second =      2.351
 #   eval_steps_per_second   =      0.118
 
-
-#textrank
+# ***** eval metrics *****
+#   eval_gen_len            =   176.3997
+#   eval_loss               =     1.8586
+#   eval_rouge1             =      0.411
+#   eval_rouge2             =     0.1682
+#   eval_rougeL             =     0.2483
+#   eval_rougeLsum          =     0.3752
+#   eval_runtime            = 1:06:18.01
+#   eval_samples            =       6630
+#   eval_samples_per_second =      1.667
+#   eval_steps_per_second   =      0.083

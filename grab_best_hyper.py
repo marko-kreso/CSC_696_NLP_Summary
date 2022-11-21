@@ -2,7 +2,7 @@ import csv
 import numpy as np
 import ast
 
-file_name='text_rank_results_225.csv'
+file_name='text_rank_results_175.csv'
 
 with open(file_name) as f:
     reader = csv.DictReader(f)
