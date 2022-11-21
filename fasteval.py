@@ -1,4 +1,5 @@
 
+import json
 import time, csv
 import numpy as np
 from text_rankcopy import query_predict
@@ -83,7 +84,7 @@ def main():
             writer.writerow([use_bert, use_textrank, length, avg_length, alpha, result])
         file.close()
     else:
-        result, avg_length = eval(.55, use_textrank, quries, use_bert, length, data_split) 
+        result, avg_length = eval(.55, use_textrank, quries, use_bert, length, data_split, True, 'bart-Base') 
         print('result: ', result, 'avg_length', avg_length)
     assert(False)
     #{'rouge1': 0.25052002720900657, 'rouge2': 0.022333150302001697, 'rougeL': 0.12211520451117444, 'rougeLsum': 0.1695929493182961} 
@@ -95,23 +96,24 @@ def main():
                     writer.writerow([result[i][0], result[i][1], result[i][2]])
     finish_time = time.perf_counter()
     print(f"Program finished in {finish_time-start_time} seconds")
-def postprocess_text(preds, labels):
+def postprocess_text(preds):
     preds = [pred.strip() for pred in preds]
-    labels = [label.strip() for label in labels]
 
     # rougeLSum expects newline after each sentence
     preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
-    labels = ["\n".join(nltk.sent_tokenize(label)) for label in labels]
 
-    return preds, labels
+    return preds
 
-def eval(alpha, use_textrank, quries, use_bert, length, split):
+def eval(alpha, use_textrank, quries, use_bert, length, split, bootstrap=False, bootstrap_name=""):
     alpha = round(alpha,2)
     preds = list()
     labels = list()
     lens = list()
+    bootstap_data = list() 
+    
     print('quries',len(quries))
     n_sums = len(quries)
+    n_sums=2
     for i in range(n_sums): 
         if use_textrank:
             pred = query_predict(quries[i][1], int(quries[i][0]), length, use_bert, alpha, split)
@@ -119,21 +121,29 @@ def eval(alpha, use_textrank, quries, use_bert, length, split):
             #Use abstractive summary
             pred = quries[i][1]
         
-        label = quries[i][2]
-        preds.append(pred)
+        label = postprocess_text(quries[i][2])
+        preds.append(postprocess_text(pred))
         labels.append(label)
+
         lens.append(len(pred.split()))
-    print('labels', labels[0])
-    print('pred', preds[0])
-    print('query', quries[0][1])
+        if bootstrap:
+            text_Bart_res = metric.compute(predictions=[pred], references=[label], use_stemmer=True)
+            base_Bart_res2 = metric.compute(predictions=[quries[i][1]], references=[label], use_stemmer=True)
+            if 
+            bootstap_data.append({'text-BART': text_Bart_res, 'base-BART':base_Bart_res2})
+    if bootstrap:
+        file_path = Path('.', bootstrap_name)
+
+        if file_path.exists():
+            raise FileExistsError
+        
+        json.dump(bootstrap, file_path.open('w', bootstrap_name))
+
     avg_length = sum(lens)/len(lens)
     print('avg',avg_length)
     print('Used SBERT:', use_bert) 
-    preds, labels = postprocess_text(preds, labels) 
+    preds, labels = postprocess_text(preds), postprocess_text(labels) 
     result = metric.compute(predictions=preds, references=labels, use_stemmer=True)
-    # result_q =metric.compute(predictions=[quries[0][1]], references=labels, use_stemmer=True) 
-    print(result)
-    # print('q',result_q)
     return result, avg_length
 if __name__ == "__main__":
     main()
