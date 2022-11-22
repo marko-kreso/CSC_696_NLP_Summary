@@ -242,7 +242,7 @@ def load_data(split):
 #when2meet
 sentence_transformer = SentenceTransformer('all-MiniLM-L6-v2')
 torch.set_default_tensor_type('torch.FloatTensor')
-def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1, split='validation', make_personalizaton=True):
+def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1, split='validation', make_personalizaton=True) -> str:
     dataset = load_data(split)
     print('Doc', doc_id, flush=True, end='\r')
     if type(abs_sum) == str:
@@ -359,15 +359,6 @@ query = "<s> backgroundthe aim of the present study was to test whether coenzyme
 #     weights = np.array([[0, .4, .3], [.4, 0, .8], [.3, .8, 0]])
 #     graph = graph(weights)
 #     generate_score(graph)
-def test2():
-    print(query_predict(query, 5, 100)[0])
-def test():
-    with open('output2', 'r') as f:
-        reader = csv.dictreader(f)
-        quries = [row['query'] for row in reader]
-
-    print(quries[350])
-    query_predict(quries[350],350, 200)
 
 
 if __name__ == "__main__":
@@ -375,7 +366,7 @@ if __name__ == "__main__":
     # print(dataset['validation'][5210])
     # assert(false)
     test2()
-    assert(false)
+    assert(False)
     #main()
     t = 0
  #   for i in range(150):

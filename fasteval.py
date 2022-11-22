@@ -7,6 +7,7 @@ import evaluate, pickle
 from pathlib import Path
 import nltk
 from datasets import load_dataset
+from typing import List, Set, Dict, Tuple
 metric = evaluate.load('rouge')
 
 excluded_phrases=["objective", "background", "method", "conclusions", "introduction", "purpose", "methods", ":"]
@@ -20,13 +21,15 @@ def main():
     fine_tune = False 
     length = 225 
     make_personalization=True 
-    bootstrap = False 
-    bootstrap_name='BART_EVAL'
+    bootstrap = True 
+    bootstrap_name=f'BOOT_EVAL_{length}'
+    eval_alpha = .55
 
     start_time = time.perf_counter()
     quries = list()
     #215 = 150
-    name = 'sums300'
+    length_map = {175:215, 425:600, 225:300}
+    name = f'sums{length_map[length]}'
     if data_split == 'test':
         name += 'Test'
     name += '.pickle'
@@ -83,11 +86,11 @@ def main():
         header = ['use_bert', 'use_textrank', 'target_length', 'avg_length_length', 'alpha', 'results']
         writer.writerow(header) 
         for alpha in np.arange(.05, 1, .05):
-            result, avg_length = eval(alpha, use_textrank, quries, use_bert, length, data_split)
+            result, avg_length = eval(alpha, use_textrank, quries, use_bert, length, data_split, make_personalization)
             writer.writerow([use_bert, use_textrank, length, avg_length, alpha, result])
         file.close()
     else:
-        result, avg_length = eval(.55, use_textrank, quries, use_bert, length, data_split, make_personalization, bootstrap, bootstrap_name) 
+        result, avg_length = eval(eval_alpha, use_textrank, quries, use_bert, length, data_split, make_personalization, bootstrap, bootstrap_name) 
         print('result: ', result, 'avg_length', avg_length)
     assert(False)
     #{'rouge1': 0.25052002720900657, 'rouge2': 0.022333150302001697, 'rougeL': 0.12211520451117444, 'rougeLsum': 0.1695929493182961} 
@@ -99,16 +102,25 @@ def main():
                     writer.writerow([result[i][0], result[i][1], result[i][2]])
     finish_time = time.perf_counter()
     print(f"Program finished in {finish_time-start_time} seconds")
-def postprocess_text(preds):
+
+def postprocess_text(preds: List[str]):
     preds = [pred.strip() for pred in preds]
 
     # rougeLSum expects newline after each sentence
     preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
 
     return preds
+# def postprocess_text(preds):
+#     preds = [pred.strip() for pred in preds]
 
-def eval(alpha, use_textrank, quries, use_bert, length, split, make_person, bootstrap=False, bootstrap_name=""):
+#     # rougeLSum expects newline after each sentence
+#     preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
+
+#     return preds
+
+def eval(alpha, use_textrank, quries:List[Tuple[int, str, str]], use_bert, length, split, make_person, bootstrap=False, bootstrap_name=""):
     alpha = round(alpha,2)
+    print('alpha', alpha)
     preds = list()
     labels = list()
     lens = list()
@@ -119,15 +131,16 @@ def eval(alpha, use_textrank, quries, use_bert, length, split, make_person, boot
     
     print('quries',len(quries))
     n_sums = len(quries)
-    n_sums=2
     for i in range(n_sums): 
         if use_textrank:
-            pred = query_predict(quries[i][1], int(quries[i][0]), length, use_bert, alpha, split, make_person)
+            pred = query_predict(quries[i][1], int(quries[i][0]), length, use_bert, alpha, split, make_person) 
         else:
             #Use abstractive summary
             pred = quries[i][1]
-        label = postprocess_text(quries[i][2])
-        preds.append(postprocess_text(pred))
+        
+        pred, label, query = postprocess_text([pred])[0], postprocess_text([quries[i][2]])[0], postprocess_text([quries[i][1]])[0]
+    
+        preds.append(pred)
         labels.append(label)
 
         # print(quries[i][2]) 
@@ -135,31 +148,29 @@ def eval(alpha, use_textrank, quries, use_bert, length, split, make_person, boot
         # assert(False)
         lens.append(len(pred.split()))
         if bootstrap:
-            print(pred)
-            print(label)            
-            text_Bart_res = metric.compute(predictions=[pred], references=[label], use_stemmer=True)
-
-            print(text_Bart_res)
-            assert(False)
-            other_pred = query_predict(quries[i][1], int(quries[i][0]), length, use_bert, alpha, split, not make_person) 
             if make_person:
                 text_bart_pred = pred 
-                text_rank_pred = other_pred
+                text_rank_pred = query_predict(quries[i][1], int(quries[i][0]), length, use_bert, .85, split, False)
             else:
-                text_rank_pred = pred 
-                text_bart_pred = other_pred 
-
+                assert(False)
             text_Bart_res = metric.compute(predictions=[text_bart_pred], references=[label], use_stemmer=True)
             text_rank_res = metric.compute(predictions=[text_rank_pred], references=[label], use_stemmer=True)
-            base_Bart_res = metric.compute(predictions=[quries[i][1]], references=[label], use_stemmer=True)
+            base_Bart_res = metric.compute(predictions=[query], references=[label], use_stemmer=True)
             bootstrap_data.append({'text-BART': text_Bart_res, 'base-BART':base_Bart_res, 'text-rank': text_rank_res})
     if bootstrap:
-        file_path = Path('.', bootstrap_name)
+        file_path = Path('.') / bootstrap_name
         bootstrap_info['data'] = bootstrap_data
-        if file_path.exists():
-            raise FileExistsError
-        print(bootstrap_info)
-        json.dump(bootstrap_info, file_path.open('w', bootstrap_name))
+
+        while file_path.exists():
+            print('FILE PATH EXISTS')
+            overwrite = input(f'Overwrite {file_path}? (y/n): ')
+            if overwrite == 'y':
+                print('Deleting: ', file_path)
+                file_path.unlink()
+            if overwrite == 'n':
+                file_path = Path('.') / input('Specify file_name: ')
+        print('Writing file to', file_path)
+        json.dump(bootstrap_info, file_path.open('w'))
 
     avg_length = sum(lens)/len(lens)
     print('avg',avg_length)
