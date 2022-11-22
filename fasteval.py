@@ -14,12 +14,15 @@ extra= [ex + "." for ex in excluded_phrases]
 excluded_phrases.extend(extra)
 exclude_idx = [2320, 4923, 5210]
 def main():
-    data_split = 'validation'
+    data_split = 'test'
     use_bert = True
     use_textrank = True 
-    fine_tune = True 
+    fine_tune = False 
     length = 225 
-    
+    make_personalization=True 
+    bootstrap = False 
+    bootstrap_name='BART_EVAL'
+
     start_time = time.perf_counter()
     quries = list()
     #215 = 150
@@ -84,7 +87,7 @@ def main():
             writer.writerow([use_bert, use_textrank, length, avg_length, alpha, result])
         file.close()
     else:
-        result, avg_length = eval(.55, use_textrank, quries, use_bert, length, data_split, True, 'bart-Base') 
+        result, avg_length = eval(.55, use_textrank, quries, use_bert, length, data_split, make_personalization, bootstrap, bootstrap_name) 
         print('result: ', result, 'avg_length', avg_length)
     assert(False)
     #{'rouge1': 0.25052002720900657, 'rouge2': 0.022333150302001697, 'rougeL': 0.12211520451117444, 'rougeLsum': 0.1695929493182961} 
@@ -104,45 +107,66 @@ def postprocess_text(preds):
 
     return preds
 
-def eval(alpha, use_textrank, quries, use_bert, length, split, bootstrap=False, bootstrap_name=""):
+def eval(alpha, use_textrank, quries, use_bert, length, split, make_person, bootstrap=False, bootstrap_name=""):
     alpha = round(alpha,2)
     preds = list()
     labels = list()
     lens = list()
-    bootstap_data = list() 
+    bootstrap_info = dict()
+    bootstrap_info['config'] = {'make_personalization': make_person, 'use_bert': use_bert}
+    bootstrap_data = []
+    
     
     print('quries',len(quries))
     n_sums = len(quries)
     n_sums=2
     for i in range(n_sums): 
         if use_textrank:
-            pred = query_predict(quries[i][1], int(quries[i][0]), length, use_bert, alpha, split)
+            pred = query_predict(quries[i][1], int(quries[i][0]), length, use_bert, alpha, split, make_person)
         else:
             #Use abstractive summary
             pred = quries[i][1]
-        
         label = postprocess_text(quries[i][2])
         preds.append(postprocess_text(pred))
         labels.append(label)
 
+        # print(quries[i][2]) 
+        # print(label) 
+        # assert(False)
         lens.append(len(pred.split()))
         if bootstrap:
+            print(pred)
+            print(label)            
             text_Bart_res = metric.compute(predictions=[pred], references=[label], use_stemmer=True)
-            base_Bart_res2 = metric.compute(predictions=[quries[i][1]], references=[label], use_stemmer=True)
-            if 
-            bootstap_data.append({'text-BART': text_Bart_res, 'base-BART':base_Bart_res2})
+
+            print(text_Bart_res)
+            assert(False)
+            other_pred = query_predict(quries[i][1], int(quries[i][0]), length, use_bert, alpha, split, not make_person) 
+            if make_person:
+                text_bart_pred = pred 
+                text_rank_pred = other_pred
+            else:
+                text_rank_pred = pred 
+                text_bart_pred = other_pred 
+
+            text_Bart_res = metric.compute(predictions=[text_bart_pred], references=[label], use_stemmer=True)
+            text_rank_res = metric.compute(predictions=[text_rank_pred], references=[label], use_stemmer=True)
+            base_Bart_res = metric.compute(predictions=[quries[i][1]], references=[label], use_stemmer=True)
+            bootstrap_data.append({'text-BART': text_Bart_res, 'base-BART':base_Bart_res, 'text-rank': text_rank_res})
     if bootstrap:
         file_path = Path('.', bootstrap_name)
-
+        bootstrap_info['data'] = bootstrap_data
         if file_path.exists():
             raise FileExistsError
-        
-        json.dump(bootstrap, file_path.open('w', bootstrap_name))
+        print(bootstrap_info)
+        json.dump(bootstrap_info, file_path.open('w', bootstrap_name))
 
     avg_length = sum(lens)/len(lens)
     print('avg',avg_length)
     print('Used SBERT:', use_bert) 
+    print('Make person', make_person)
     preds, labels = postprocess_text(preds), postprocess_text(labels) 
+    print(labels)
     result = metric.compute(predictions=preds, references=labels, use_stemmer=True)
     return result, avg_length
 if __name__ == "__main__":

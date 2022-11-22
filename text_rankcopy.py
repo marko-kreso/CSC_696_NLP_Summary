@@ -242,7 +242,7 @@ def load_data(split):
 #when2meet
 sentence_transformer = SentenceTransformer('all-MiniLM-L6-v2')
 torch.set_default_tensor_type('torch.FloatTensor')
-def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1, split='validation'):
+def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1, split='validation', make_personalizaton=True):
     dataset = load_data(split)
     print('Doc', doc_id, flush=True, end='\r')
     if type(abs_sum) == str:
@@ -251,6 +251,7 @@ def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1, split='v
 
     #Removes white space since dataset has some problems with repeating lines
     pred_sum = ' '.join(dataset[split][doc_id]['article'].split())
+    pred_sum = pred_sum.replace('.', '. ')
     
     
     #Remove sentence duplicates
@@ -316,7 +317,10 @@ def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1, split='v
  
     graph = Graph(similarity_table)
     #graph = generate_score(graph, personalization_vec, .1)
-    graph = generate_score(graph, personalization_vec,d=alpha)
+    if(make_personalizaton):
+        graph = generate_score(graph, personalization_vec,d=alpha)
+    else:
+        graph = generate_score(graph,d=alpha)
 
     #Get top 5 ranked sentences and arrange in order they appear in article.
 
@@ -326,8 +330,9 @@ def query_predict(abs_sum, doc_id, max_len, bart_embed=False, alpha=.1, split='v
     j = 0
     #print(ranked)
     for rank in ranked:
-        
         if final_len + len(pred_sum_sentences[rank].split()) > max_len:
+            if final_len == 0:
+                continue
             break
         final_len += len(pred_sum_sentences[rank].split())
         j+=1
